@@ -65,6 +65,20 @@ input { width: 190px; max-width: 100% }
 .sets { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px }
 .sets span { font-size: 11px; padding: 1px 6px; border-radius: 3px; background: var(--slot); color: var(--muted); font-variant-numeric: tabular-nums }
 .empty { color: var(--muted); padding: 40px 0; text-align: center }
+.grid.by-set { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); align-items: start }
+.set { padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; display: flex; flex-direction: column; gap: 10px; min-width: 0 }
+.set h2 { font: 700 16px var(--display); margin: 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap }
+.set h2 small { font: 500 12px var(--body); color: var(--muted) }
+.set ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px }
+.row { display: flex; align-items: center; gap: 10px; min-width: 0 }
+.row .slot { width: 44px; height: 44px }
+.row .info { flex: 1 }
+.row .qty { font: 700 14px var(--display); color: var(--muted); font-variant-numeric: tabular-nums }
+.row.dim { opacity: .35 }
+.totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 11px; color: var(--muted); text-align: center }
+.totals div { background: var(--slot); border-radius: 3px; padding: 6px 4px }
+.totals b { display: block; font: 700 14px var(--display); color: var(--fg); font-variant-numeric: tabular-nums }
+.totals .gain b { color: var(--accent) }
 @media (max-width: 560px) { .tools { margin-left: 0; width: 100% } input { flex: 1 } }
 </style>
 
@@ -79,6 +93,10 @@ input { width: 190px; max-width: 100% }
   <div class="bar">
     <div class="chips" id="chips" role="group" aria-label="Filtrer par rareté"></div>
     <div class="tools">
+      <select id="view" aria-label="Affichage">
+        <option value="set">Par set</option>
+        <option value="item">Par objet</option>
+      </select>
       <input id="q" type="search" placeholder="Chercher un objet…" aria-label="Chercher un objet">
       <select id="cat" aria-label="Catégorie"></select>
       <select id="sort" aria-label="Trier">
@@ -213,7 +231,7 @@ const ORDER = "LEUC";
 const fmt = n => "$" + n.toLocaleString("en-US");
 const k = n => n >= 1000 ? n / 1000 + "k" : n;
 
-const state = { rar: new Set(), q: "", cat: "", sort: "rarity" };
+const state = { rar: new Set(), q: "", cat: "", sort: "rarity", view: "set" };
 try { const s = JSON.parse(localStorage.getItem("robrun-filters") || "null"); if (s) Object.assign(state, s, { rar: new Set(s.rar) }) } catch {}
 const save = () => { try { localStorage.setItem("robrun-filters", JSON.stringify({ ...state, rar: [...state.rar] })) } catch {} };
 
@@ -236,8 +254,9 @@ for (const c of ORDER) mkChip(c, RAR[c][0], ITEMS.filter(i => i[3] === c).length
 const cat = document.getElementById("cat");
 cat.innerHTML = '<option value="">Toutes catégories</option>' +
   [...new Set(ITEMS.map(i => i[4]))].sort().map(c => `<option>${c.replace("&", "&amp;")}</option>`).join("");
-const q = document.getElementById("q"), sort = document.getElementById("sort");
-q.value = state.q; cat.value = state.cat; sort.value = state.sort;
+const q = document.getElementById("q"), sort = document.getElementById("sort"), view = document.getElementById("view");
+q.value = state.q; cat.value = state.cat; sort.value = state.sort; view.value = state.view;
+view.onchange = () => { state.view = view.value; render() };
 q.oninput = () => { state.q = q.value; render() };
 cat.onchange = () => { state.cat = cat.value; render() };
 sort.onchange = () => { state.sort = sort.value; render() };
@@ -247,7 +266,11 @@ function render() {
   save();
   for (const b of chips.children) b.setAttribute("aria-pressed", b.dataset.code ? state.rar.has(b.dataset.code) : state.rar.size === 0);
   const needle = state.q.trim().toLowerCase();
-  let list = ITEMS.filter(i => (!state.rar.size || state.rar.has(i[3])) && (!state.cat || i[4] === state.cat) && (!needle || i[0].toLowerCase().includes(needle)));
+  const match = i => (!state.rar.size || state.rar.has(i[3])) && (!state.cat || i[4] === state.cat) && (!needle || i[0].toLowerCase().includes(needle));
+  sort.hidden = state.view === "set";
+  grid.classList.toggle("by-set", state.view === "set");
+  if (state.view === "set") return renderSets(match, state.rar.size || state.cat || needle);
+  let list = ITEMS.filter(match);
   const by = {
     rarity: (a, b) => ORDER.indexOf(a[3]) - ORDER.indexOf(b[3]) || b[5] - a[5],
     "price-desc": (a, b) => b[5] - a[5],
@@ -269,6 +292,30 @@ function render() {
   }).join("");
   document.getElementById("count").textContent = `${list.length} objet${list.length > 1 ? "s" : ""} sur ${ITEMS.length}`;
   document.getElementById("empty").hidden = list.length > 0;
+}
+
+// A set is shown when one of its items matches the filters; the others stay, dimmed, so the set reads whole.
+function renderSets(match, filtering) {
+  const shown = SETS.map(([sell, crateName, crate], s) => ({ s, sell, crateName, crate, items: ITEMS.filter(i => i[6].some(([x]) => x === s)) }))
+    .filter(set => set.items.some(match));
+  grid.innerHTML = shown.map(({ s, sell, crateName, crate, items }) => `<li class="set">
+    <h2>Set ${s + 1} <small>${crateName}</small></h2>
+    <ul>${items.map(it => {
+      const [name, slug, img, r, category, price, sets] = it;
+      const [label, key] = RAR[r];
+      const n = sets.find(([x]) => x === s)[1];
+      return `<li class="row${filtering && !match(it) ? " dim" : ""}" style="--c:var(--r-${key});--t:var(--t-${key})">
+        <span class="slot"><img src="https://static.metaforge.app/rob-run/items/${img}.webp" alt="" loading="lazy"></span>
+        <div class="info">
+          <a class="name" href="https://metaforge.app/rob-run/database/${slug}" target="_blank" rel="noopener">${name}</a>
+          <span class="meta"><span class="rar">${label}</span> · ${category} · ${fmt(price)}</span>
+        </div>
+        <span class="qty">×${n}</span></li>`;
+    }).join("")}</ul>
+    <div class="totals"><div>Objets vendus<b>${fmt(sell)}</b></div><div>Caisse<b>${fmt(crate)}</b></div><div class="gain">Gain<b>+${fmt(crate - sell)}</b></div></div>
+  </li>`).join("");
+  document.getElementById("count").textContent = `${shown.length} set${shown.length > 1 ? "s" : ""} sur ${SETS.length}`;
+  document.getElementById("empty").hidden = shown.length > 0;
 }
 render();
 </script>
