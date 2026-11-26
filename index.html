@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ROB RUN Valuables</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky filter bar over a dense grid of loot tiles, each tile tinted by its rarity like the in-game slot. */
+:root {
+  --bg: #f3f1ee; --panel: #ffffff; --slot: #e6e2dc; --fg: #1d1a17; --muted: #6b645c; --line: #d9d3cb;
+  --accent: #d9541e;
+  --r-legendary: #FFD500; --r-epic: #E375FF; --r-uncommon: #67F835; --r-common: #9A9894;
+  --t-legendary: #8a6d00; --t-epic: #9a2fb8; --t-uncommon: #2f7d12; --t-common: #6b6965;
+  --display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121110; --panel: #1b1918; --slot: #262525; --fg: #eeeae5; --muted: #9a928a; --line: #2e2b29;
+  --accent: #ff8a3d;
+  --t-legendary: #FFD500; --t-epic: #E375FF; --t-uncommon: #67F835; --t-common: #b5b3ae;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121110; --panel: #1b1918; --slot: #262525; --fg: #eeeae5; --muted: #9a928a; --line: #2e2b29;
+  --accent: #ff8a3d;
+  --t-legendary: #FFD500; --t-epic: #E375FF; --t-uncommon: #67F835; --t-common: #b5b3ae;
+  color-scheme: dark }
+
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px; line-height: 1.45 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px }
+h1 { font-family: var(--display); font-size: clamp(26px, 4vw, 36px); letter-spacing: .02em; margin: 0; text-wrap: balance }
+h1 span { color: var(--accent) }
+.sub { color: var(--muted); margin: 4px 0 0 }
+.sub a { color: inherit }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-block: 14px; margin-top: 16px; border-bottom: 1px solid var(--line) }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { font: 600 13px var(--body); display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  padding: 6px 11px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel); color: var(--fg) }
+.chip i { width: 9px; height: 9px; border-radius: 2px; background: var(--c, var(--muted)) }
+.chip b { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums }
+.chip[aria-pressed="true"] { border-color: var(--c, var(--accent)); box-shadow: inset 0 0 0 1px var(--c, var(--accent)) }
+.chip:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.tools { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap }
+input, select { font: 14px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px }
+input { width: 190px; max-width: 100% }
+.count { color: var(--muted); font-size: 13px; margin: 12px 0; font-variant-numeric: tabular-nums }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; list-style: none; padding: 0; margin: 0 }
+.item { display: flex; gap: 12px; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; min-width: 0 }
+.slot { flex: none; width: 64px; height: 64px; border-radius: 3px; display: grid; place-items: center; background: var(--slot);
+  background-image: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--c) 66%, transparent)) }
+.slot img { width: 86%; height: 86%; object-fit: contain; filter: drop-shadow(0 2px 3px #0008) }
+.info { min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.name { font-weight: 600; color: var(--fg); text-decoration: none; overflow-wrap: anywhere }
+.name:hover { text-decoration: underline }
+.meta { font-size: 12px; color: var(--muted) }
+.meta .rar { color: var(--t); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; font-size: 11px }
+.price { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums }
+.sets { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px }
+.sets span { font-size: 11px; padding: 1px 6px; border-radius: 3px; background: var(--slot); color: var(--muted); font-variant-numeric: tabular-nums }
+.empty { color: var(--muted); padding: 40px 0; text-align: center }
+@media (max-width: 560px) { .tools { margin-left: 0; width: 100% } input { flex: 1 } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>ROB RUN <span>Valuables</span></h1>
+      <p class="sub">Les 108 objets demandés par les 34 collections · relevé du 22/11/2026 sur <a href="https://metaforge.app/rob-run/collections" target="_blank" rel="noopener">metaforge.app</a></p>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="chips" id="chips" role="group" aria-label="Filtrer par rareté"></div>
+    <div class="tools">
+      <input id="q" type="search" placeholder="Chercher un objet…" aria-label="Chercher un objet">
+      <select id="cat" aria-label="Catégorie"></select>
+      <select id="sort" aria-label="Trier">
+        <option value="rarity">Rareté</option>
+        <option value="price-desc">Prix de vente ↓</option>
+        <option value="price-asc">Prix de vente ↑</option>
+        <option value="name">Nom</option>
+      </select>
+    </div>
+  </div>
+  <p class="count" id="count"></p>
+  <ul class="grid" id="grid"></ul>
+  <p class="empty" id="empty" hidden>Aucun objet ne correspond à ces filtres.</p>
+</div>
+
+<script>
+// Sets: [sell value of its items, crate name, crate value], in MetaForge's order.
+const SETS = [[68830,"Collection Crate",500000],[75460,"Collection Crate",500000],[77390,"Collection Crate",500000],[77660,"Collection Crate",500000],[77732,"Collection Crate",500000],[79762,"Collection Crate",500000],[82806,"Collection Crate",500000],[84592,"Collection Crate",500000],[87464,"Collection Crate",500000],[91282,"Collection Crate",500000],[9060,"Collection Crate",150000],[10104,"Collection Crate",150000],[11282,"Collection Crate",150000],[11406,"Collection Crate",150000],[13228,"Collection Crate",150000],[13326,"Collection Crate",150000],[15316,"Collection Crate",150000],[15528,"Collection Crate",150000],[17974,"Collection Crate",150000],[27632,"Collection Crate",150000],[1126,"Collection Crate",50000],[1230,"Collection Crate",50000],[1266,"Collection Crate",50000],[1356,"Collection Crate",50000],[1380,"Collection Crate",50000],[1440,"Collection Crate",50000],[1458,"Collection Crate",50000],[1494,"Collection Crate",50000],[1506,"Collection Crate",50000],[1570,"Rare Collection Crate",50000],[1840,"Collection Crate",50000],[2116,"Collection Crate",50000],[2548,"Unique Collection Crate",50000],[2578,"Collection Crate",50000]];
+// Items: [name, slug, image, rarity L/E/U/C, category, sell price, [[set index, qty], ...]]
+const ITEMS = [
+["Nightfall Collectible Knife","nightfall-collectible-knife","blade_5","L","Collectible",27784,[[0,1]]],
+["SkyDragon Lighter","skydragon-lighter","lighter_5","L","Goods",20820,[[0,1]]],
+["DUCHEE Perfume","duchee-perfume","perfume_5","L","Goods",20226,[[0,1]]],
+["High-precision Stove","high-precision-stove","burner_3","L","Gear",32904,[[1,1]]],
+["Joker's Choice Deck","jokers-choice-deck","poker_cards_5","L","Collectible",22556,[[1,1]]],
+["Refined Gunpowder Kit","refined-gunpowder-kit","gunpowder_3","L","Gear",20000,[[1,1]]],
+["MASK Comic Book","mask-comic-book","comics_5","L","Collectible",30180,[[2,1]]],
+["PENARAI Necklace","penarai-necklace","necklace_6","L","Jewellery",30134,[[2,1]]],
+["Royal Motors Emblem","royal-motors-emblem","car_parts_1","L","Car Parts",17076,[[2,1]]],
+["Premium Car Compressor","premium-car-compressor","car_parts_8","L","Car Parts",29760,[[3,1]]],
+["Tuver Phone","tuver-phone","phone_5","L","Electronics",21390,[[3,1]]],
+["Modern Tactical Binoculars","modern-tactical-binoculars","equipment_7","L","Gear",26510,[[3,1]]],
+["CollectiToy x TA","collectitoy-x-ta","toy_5","L","Collectible",33896,[[4,1]]],
+["Premium Dashcam","premium-dashcam","car_device_5","L","Car Parts",21280,[[4,1]]],
+["Eason McKinley Card","eason-mckinley-card","baseball_card_1","L","Collectible",22556,[[4,1]]],
+["Krystal Authority Bottle","krystal-authority-bottle","alcohol_12","L","Alcohol & Tobacco",23960,[[5,1]]],
+["POLEX Watch","polex-watch","watch_5","L","Jewellery",32842,[[5,1]]],
+["Playgirl Condoms","playgirl-condoms","condoms_5","L","Goods",22960,[[5,1]]],
+["Beat Head Headphones","beat-head-headphones","headphones_5","L","Electronics",34716,[[6,1]]],
+["Tactical Carabiner","tactical-carabiner","equip_carbine_4","L","Gear",23200,[[6,1]]],
+["Drone Controller","drone-controller","weapon_trinket_3","L","Gear",24890,[[6,1]]],
+["PD STATION Laptop","pd-station-laptop","laptop_4","L","Electronics",29556,[[7,1]]],
+["Pit Bull Bobblehead","pit-bull-bobblehead","car_trinket_5","L","Car Parts",20160,[[7,1]]],
+["PRIDE Ring","pride-ring","ring_6","L","Jewellery",34876,[[7,1]]],
+["Dental Loupes","dental-loupes","pharma_tools_5","L","Medical Goods",30620,[[8,1]]],
+["Synthetic Gun Grease","synthetic-gun-grease","gun_grease_3","L","Gear",26444,[[8,1]]],
+["Collectible Multitool","collectible-multitool","equipment_11","L","Gear",30400,[[8,1]]],
+["OPALINE Magazine","opaline-magazine","journal_5","L","Collectible",32226,[[9,1]]],
+["AMINA Earrings","amina-earrings","earrings_2","L","Jewellery",33840,[[9,1]]],
+["Cosmetic Ampule","cosmetic-ampule","vial_5","L","Medical Goods",25216,[[9,1]]],
+["Deity Statue","deity-statue","antique_1","E","Collectible",4300,[[10,1],[13,1]]],
+["Car Perfume","car-perfume","car_trinket_3","E","Car Parts",2560,[[10,1]]],
+["Racer Keychain","racer-keychain","car_trinket_4","E","Car Parts",2200,[[10,1]]],
+["Professional Gun Cleaning Kit","professional-gun-cleaning-kit","weapon_cleaning_2","E","Gear",2950,[[11,1]]],
+["Professional Gun Grease","professional-gun-grease","gun_grease_2","E","Gear",3588,[[11,1]]],
+["Ballistic Chronograph","ballistic-chronograph","weapon_trinket_2","E","Gear",3566,[[11,1]]],
+["DIGITAL SOUL Comic Book","digital-soul-comic-book","comics_3","E","Collectible",5106,[[12,1]]],
+["LACROCAS Perfume","lacrocas-perfume","perfume_4","E","Goods",3316,[[12,1]]],
+["Zipit Condoms","zipit-condoms","condoms_3","E","Goods",2860,[[12,1]]],
+["Vial With Liquid","vial-with-liquid","vial_2","E","Medical Goods",3290,[[13,1]]],
+["Glucometer","glucometer","pharma_tools_3","E","Medical Goods",3816,[[13,1]]],
+["Cyber Collectible Knife","cyber-collectible-knife","blade_4","E","Collectible",5248,[[14,1]]],
+["Standard Gunpowder Kit","standard-gunpowder-kit","gunpowder_2","E","Gear",3600,[[14,1]]],
+["Reinforced Carabiner","reinforced-carabiner","equip_carbine_3","E","Gear",4380,[[14,1]]],
+["CollectiToy #3 Figure","collectitoy-3-figure","toy_3","E","Collectible",4986,[[15,1]]],
+["Old Huba Cigars","old-huba-cigars","cigar_2","E","Alcohol & Tobacco",5670,[[15,1]]],
+["Mystic Card Chronicles Deck","mystic-card-chronicles-deck","poker_cards_2","E","Collectible",2670,[[15,1]]],
+["Steering Wheel","steering-wheel","car_parts_5","E","Car Parts",5360,[[16,1]]],
+["Dashcam","dashcam","car_device_3","E","Car Parts",3520,[[16,1]]],
+["HUBRID Laptop","hubrid-laptop","laptop_3","E","Electronics",6436,[[16,1]]],
+["Eclipse Bottle","eclipse-bottle","alcohol_6","E","Alcohol & Tobacco",5116,[[17,1]]],
+["PENARAI Watch","penarai-watch","watch_6","E","Jewellery",5232,[[17,1]]],
+["REFIER Necklace","refier-necklace","necklace_4","E","Jewellery",5180,[[17,1]]],
+["ZTX Console","ztx-console","console_3","E","Electronics",5980,[[18,1]]],
+["DS MAX Headphones","ds-max-headphones","headphones_3","E","Electronics",6916,[[18,1]]],
+["MAFFI Ring","maffi-ring","ring_5","E","Jewellery",5078,[[18,1]]],
+["Old Pocket Bottle","old-pocket-bottle","alcohol_10","E","Alcohol & Tobacco",4760,[[19,4]]],
+["Premium Multitool","premium-multitool","equipment_10","E","Gear",2640,[[19,1]]],
+["RedOlive Lighter","redolive-lighter","lighter_3","E","Goods",2976,[[19,2]]],
+["Vial With Supplements","vial-with-supplements","vial_1","U","Medical Goods",250,[[20,1]]],
+["Vial With Vaccine","vial-with-vaccine","vial_3","U","Medical Goods",170,[[20,1]]],
+["Ophthalmoscope","ophthalmoscope","pharma_tools_6","U","Medical Goods",206,[[20,1]]],
+["Medications","medications","pharma_pack_1","C","Medical Goods",50,[[20,10],[21,10]]],
+["Thermometer","thermometer","pharma_tools_1","U","Medical Goods",246,[[21,1]]],
+["Vial With Illegal Drug","vial-with-illegal-drug","vial_7","U","Medical Goods",254,[[21,1]]],
+["Burex Condoms","burex-condoms","condoms_1","U","Goods",230,[[21,1]]],
+["Electronics","electronics","electronics_box_1","C","Electronics",50,[[22,10],[28,10]]],
+["AIR-P Laptop","air-p-laptop","laptop_1","U","Electronics",380,[[22,1]]],
+["G-FLOW Smartphone","g-flow-smartphone","phone_1","U","Electronics",156,[[22,1]]],
+["AIRHEADS Headphones","airheads-headphones","headphones_1","U","Electronics",230,[[22,1]]],
+["Spark Plugs","spark-plugs","car_parts_6","U","Car Parts",280,[[23,1]]],
+["Car Headlight","car-headlight","car_parts_2","U","Car Parts",330,[[23,1]]],
+["DW-04","dw-04","car_parts_4","U","Car Parts",246,[[23,1]]],
+["Car Parts","car-parts","car_spare_parts_1","C","Car Parts",50,[[23,10],[24,10]]],
+["Cheap Car Stereo","cheap-car-stereo","car_device_2","U","Car Parts",440,[[24,1]]],
+["Affordable Dashcam","affordable-dashcam","car_device_1","U","Car Parts",280,[[24,1]]],
+["Hanging Dice","hanging-dice","car_trinket_1","U","Car Parts",160,[[24,1]]],
+["Black Pirate Bottle","black-pirate-bottle","alcohol_1","U","Alcohol & Tobacco",306,[[25,1]]],
+["Severka Bottle","severka-bottle","alcohol_8","U","Alcohol & Tobacco",344,[[25,1]]],
+["Happy Forester Bottle","happy-forester-bottle","alcohol_4","U","Alcohol & Tobacco",290,[[25,1]]],
+["Alcohol","alcohol","alcohol_box_1","C","Alcohol & Tobacco",50,[[25,10],[26,10]]],
+["Fine Wine Bottle","fine-wine-bottle","alcohol_7","U","Alcohol & Tobacco",312,[[26,1]]],
+["Diamond Breeze Bottle","diamond-breeze-bottle","alcohol_3","U","Alcohol & Tobacco",330,[[26,1]]],
+["Omega Bottle","omega-bottle","alcohol_9","U","Alcohol & Tobacco",316,[[26,1]]],
+["Carabiner Set","carabiner-set","equip_carbine_1","C","Gear",50,[[27,10],[31,10]]],
+["Camping Stove","camping-stove","burner_1","U","Gear",348,[[27,1]]],
+["Snap-Snap Lighter","snap-snap-lighter","lighter_1","U","Goods",236,[[27,1]]],
+["Steel Carabiner","steel-carabiner","equip_carbine_2","U","Gear",410,[[27,1]]],
+["Key-Ten-Do Console","key-ten-do-console","console_1","U","Electronics",470,[[28,1]]],
+["MS MIC Headphones","ms-mic-headphones","headphones_2","U","Electronics",346,[[28,1]]],
+["D-MAX Smartphone","d-max-smartphone","phone_2","U","Electronics",190,[[28,1]]],
+["Gun Cleaning Kit","gun-cleaning-kit","weapon_cleaning_1","U","Gear",370,[[29,1]]],
+["Gun Grease","gun-grease","gun_grease_1","U","Gear",370,[[29,1]]],
+["Basic Gunpowder Kit","basic-gunpowder-kit","gunpowder_1","U","Gear",330,[[29,1]]],
+["Weapon Parts","weapon-parts","weaponparts_box_1","C","Gear",50,[[29,10],[30,10]]],
+["Gyroscope","gyroscope","weapon_trinket_1","U","Gear",426,[[30,1]]],
+["Modern Compass","modern-compass","weapon_trinket_4","U","Gear",410,[[30,1]]],
+["Imperial Collectible Knife","imperial-collectible-knife","blade_1","U","Collectible",504,[[30,1]]],
+["Field Ration","field-ration","equipment_4","U","Gear",716,[[31,1]]],
+["Laser Rangefinder","laser-rangefinder","equipment_1","U","Gear",430,[[31,1]]],
+["Binoculars","binoculars","equipment_2","U","Gear",470,[[31,1]]],
+["SUGI Earrings","sugi-earrings","earrings_3","U","Jewellery",390,[[32,1]]],
+["PEGIUET Watch","pegiuet-watch","watch_1","U","Jewellery",352,[[32,1]]],
+["CHIPARDI Necklace","chipardi-necklace","necklace_5","U","Jewellery",306,[[32,1]]],
+["Costume Jewelry","costume-jewelry","jewelry_pouch_1","C","Jewellery",150,[[32,10],[33,10]]],
+["MAFFI Earrings","maffi-earrings","earrings_4","U","Jewellery",398,[[33,1]]],
+["ALON GIA Ring","alon-gia-ring","ring_1","U","Jewellery",258,[[33,1]]],
+["ALON GIA Necklace","alon-gia-necklace","necklace_1","U","Jewellery",422,[[33,1]]]
+];
+const RAR = { L: ["Légendaire", "legendary"], E: ["Épique", "epic"], U: ["Peu commun", "uncommon"], C: ["Commun", "common"] };
+const ORDER = "LEUC";
+const fmt = n => "$" + n.toLocaleString("en-US");
+const k = n => n >= 1000 ? n / 1000 + "k" : n;
+
+const state = { rar: new Set(), q: "", cat: "", sort: "rarity" };
+try { const s = JSON.parse(localStorage.getItem("robrun-filters") || "null"); if (s) Object.assign(state, s, { rar: new Set(s.rar) }) } catch {}
+const save = () => { try { localStorage.setItem("robrun-filters", JSON.stringify({ ...state, rar: [...state.rar] })) } catch {} };
+
+const chips = document.getElementById("chips");
+const mkChip = (code, label, count, color) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.type = "button"; b.dataset.code = code;
+  if (color) b.style.setProperty("--c", color);
+  b.innerHTML = (color ? "<i></i>" : "") + label + " <b>" + count + "</b>";
+  b.onclick = () => {
+    if (!code) state.rar.clear();
+    else state.rar.has(code) ? state.rar.delete(code) : state.rar.add(code);
+    render();
+  };
+  chips.append(b);
+};
+mkChip("", "Toutes", ITEMS.length);
+for (const c of ORDER) mkChip(c, RAR[c][0], ITEMS.filter(i => i[3] === c).length, `var(--r-${RAR[c][1]})`);
+
+const cat = document.getElementById("cat");
+cat.innerHTML = '<option value="">Toutes catégories</option>' +
+  [...new Set(ITEMS.map(i => i[4]))].sort().map(c => `<option>${c.replace("&", "&amp;")}</option>`).join("");
+const q = document.getElementById("q"), sort = document.getElementById("sort");
+q.value = state.q; cat.value = state.cat; sort.value = state.sort;
+q.oninput = () => { state.q = q.value; render() };
+cat.onchange = () => { state.cat = cat.value; render() };
+sort.onchange = () => { state.sort = sort.value; render() };
+
+const grid = document.getElementById("grid");
+function render() {
+  save();
+  for (const b of chips.children) b.setAttribute("aria-pressed", b.dataset.code ? state.rar.has(b.dataset.code) : state.rar.size === 0);
+  const needle = state.q.trim().toLowerCase();
+  let list = ITEMS.filter(i => (!state.rar.size || state.rar.has(i[3])) && (!state.cat || i[4] === state.cat) && (!needle || i[0].toLowerCase().includes(needle)));
+  const by = {
+    rarity: (a, b) => ORDER.indexOf(a[3]) - ORDER.indexOf(b[3]) || b[5] - a[5],
+    "price-desc": (a, b) => b[5] - a[5],
+    "price-asc": (a, b) => a[5] - b[5],
+    name: (a, b) => a[0].localeCompare(b[0]),
+  }[state.sort];
+  list = [...list].sort(by);
+  grid.innerHTML = list.map(([name, slug, img, r, category, price, sets]) => {
+    const [label, key] = RAR[r];
+    const setTags = sets.map(([s, n]) => `<span title="${SETS[s][1]} ${fmt(SETS[s][2])}">Set ${s + 1} · ${k(SETS[s][2])}${n > 1 ? " · ×" + n : ""}</span>`).join("");
+    return `<li class="item" style="--c:var(--r-${key});--t:var(--t-${key})">
+      <span class="slot"><img src="https://static.metaforge.app/rob-run/items/${img}.webp" alt="" loading="lazy"></span>
+      <div class="info">
+        <a class="name" href="https://metaforge.app/rob-run/database/${slug}" target="_blank" rel="noopener">${name}</a>
+        <span class="meta"><span class="rar">${label}</span> · ${category}</span>
+        <span class="price">${fmt(price)}</span>
+        <div class="sets">${setTags}</div>
+      </div></li>`;
+  }).join("");
+  document.getElementById("count").textContent = `${list.length} objet${list.length > 1 ? "s" : ""} sur ${ITEMS.length}`;
+  document.getElementById("empty").hidden = list.length > 0;
+}
+render();
+</script>
+</html>
